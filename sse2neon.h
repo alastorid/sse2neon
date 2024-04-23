@@ -9153,7 +9153,16 @@ FORCE_INLINE int _mm_popcnt_u32(unsigned int a)
 #if __has_builtin(__builtin_popcount)
     return __builtin_popcount(a);
 #elif defined(_MSC_VER)
+#ifdef _M_ARM64
+    uint8x8_t v = vcreate_u8(static_cast<uint64_t>(a) << 32);
+    uint8x8_t vsum = vcnt_u8(v);
+
+    uint16x4_t sum16 = vpaddl_u8(vsum);
+    uint32x2_t sum32 = vpaddl_u16(sum16);
+    return vget_lane_u32(sum32, 0);
+#else
     return _CountOneBits(a);
+#endif
 #else
     return (int) vaddlv_u8(vcnt_u8(vcreate_u8((uint64_t) a)));
 #endif
@@ -9182,7 +9191,18 @@ FORCE_INLINE int64_t _mm_popcnt_u64(uint64_t a)
 #if __has_builtin(__builtin_popcountll)
     return __builtin_popcountll(a);
 #elif defined(_MSC_VER)
+#if defined(_M_ARM64)
+    // direct create from 64-bit value
+    uint8x8_t v = vcreate_u8(a);
+    uint8x8_t vsum = vcnt_u8(v);
+
+    uint16x4_t sum16 = vpaddl_u8(vsum);
+    uint32x2_t sum32 = vpaddl_u16(sum16);
+    uint64x1_t sum64 = vpaddl_u32(sum32);
+    return vget_lane_u64(sum64, 0);
+#else
     return _CountOneBits64(a);
+#endif
 #else
     return (int64_t) vaddlv_u8(vcnt_u8(vcreate_u8(a)));
 #endif
